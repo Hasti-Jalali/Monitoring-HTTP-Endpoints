@@ -39,10 +39,14 @@ class Request(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     url_id = db.Column(db.Integer)
     result = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime)
 
 # with app.app_context():
 #     db.create_all()
 #     db.session.commit()
+# add column to Request
+
+
 
 # token_required is a decorator function that checks for the presence of a valid JWT in the request header
 def token_required(f):
@@ -135,6 +139,111 @@ def login():
 @token_required
 def test(current_user):
     return jsonify({'message' : 'Hello, ' + current_user.username + ' !!'})
+
+# route to create a new url
+@app.route('/api/urls', methods =['POST'])
+@token_required
+def create_url(current_user):
+    data = request.form
+    urls = URL.query\
+        .filter_by(user_id = current_user.id)\
+        .all()
+    if urls.count() >= 20:
+        return make_response('You can only add 20 urls.', 403)
+    address = data.get('address')
+    threshold = data.get('threshold')
+    url = URL(
+        address = address,
+        user_id = current_user.id,
+        threshold = threshold
+    )
+    db.session.add(url)
+    db.session.commit()
+    return make_response('Successfully created.', 201)
+
+# route to get all the urls of the current user
+@app.route('/api/urls', methods =['GET']) 
+@token_required
+def get_urls(current_user):
+    urls = URL.query\
+        .filter_by(user_id = current_user.id)\
+        .all()
+    output = []
+    for url in urls:
+        url_data = {}
+        url_data['id'] = url.id
+        url_data['address'] = url.address
+        url_data['threshold'] = url.threshold
+        output.append(url_data)
+    return jsonify({'urls' : output})
+
+# route to check if the url is up or down
+@app.route('/api/urls/<url_id>', methods =['GET'])
+@token_required
+def get_stat(current_user, url_id):
+    url = URL.query\
+        .filter_by(id = url_id, user_id = current_user.id)\
+        .first()
+    if not url:
+        return make_response('No url found', 404)
+    current_time = datetime.now() - timedelta(hours = 24)
+    requests = Request.query\
+        .filter_by(url_id = url_id)\
+        .all()
+    requests = [request for request in requests if request.timestamp > current_time]
+    output = []
+    for request in requests:
+        request_data = {}
+        request_data['id'] = request.id
+        request_data['result'] = request.result
+        output.append(request_data)
+    return jsonify({'requests' : output})
+
+# route to delete a url
+@app.route('/api/urls/<url_id>', methods =['DELETE'])
+@token_required
+def delete_url(current_user, url_id):
+    url = URL.query\
+        .filter_by(id = url_id, user_id = current_user.id)\
+        .first()
+    if not url:
+        return make_response('No url found', 404)
+    db.session.delete(url)
+    db.session.commit()
+    return make_response('Successfully deleted.', 201)
+
+# get url allert which meet the threshold
+@app.route('/api/alert', methods =['GET'])
+@token_required
+def get_alert(current_user):
+    urls = URL.query\
+        .filter_by(user_id = current_user.id)\
+        .all()
+    output = []
+    for url in urls:
+        url_data = {}
+        url_data['id'] = url.id
+        url_data['address'] = url.address
+        url_data['threshold'] = url.threshold
+        requests = Request.query\
+            .filter_by(url_id = url.id)\
+            .all()
+        url_data['requests'] = requests
+        output.append(url_data)
+    return jsonify({'urls' : output})
+
+# dismiss alert
+@app.route('/api/alert/<url_id>', methods =['PUT'])
+@token_required
+def dismiss_alert(current_user, url_id):
+    url = URL.query\
+        .filter_by(id = url_id, user_id = current_user.id)\
+        .first()
+    if not url:
+        return make_response('No url found', 404)
+    url.threshold = 0
+    db.session.commit()
+    return make_response('Successfully dismissed.', 201)
 
 if __name__ == "__main__":
     # setting debug to True enables hot reload
