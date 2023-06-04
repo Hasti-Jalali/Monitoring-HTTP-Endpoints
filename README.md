@@ -1,3 +1,11 @@
-# Monitoring-HTTP-Endpoints
+# HTTP Endpoint Monitoring Service
 
-In this exercise, we embark on developing a service in Python to monitor HTTP endpoints. Our goal is to track the response status codes of these endpoints at configurable time intervals (such as every 30 seconds, 1 minute, 5 minutes). By sending HTTP requests to the specified endpoints, our service captures and records the status code reports. Each URL is assigned an error threshold, indicating the maximum acceptable number of errors. Once this threshold is surpassed, our service generates alerts for the respective user associated with the URL. Successful HTTP calls are determined by response status codes falling within the 2xx range, while unsuccessful calls are identified by non-2xx status codes. Through this exercise, you will gain practical experience in developing a monitoring system that ensures the health and reliability of HTTP endpoints while providing real-time alerts for effective issue resolution.
+This project is a Python-based HTTP endpoint monitoring service that tracks the response status codes of specified URLs at customizable time intervals. It sends HTTP requests to the provided endpoints, records the response status codes, and generates alerts if the error threshold is exceeded.
+
+## Features
+
+- Configurable time intervals for monitoring (e.g., 30 seconds, 1 minute, 5 minutes)
+- Tracks and records response status codes of HTTP endpoints
+- Customizable error threshold for each URL
+- Generates alerts when the error threshold is surpassed
+- Differentiates between successful (2xx) and unsuccessful (non-2xx) HTTP calls
